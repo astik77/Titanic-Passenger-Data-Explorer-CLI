@@ -81,6 +81,8 @@ def inspect_csv(file_path):
                 return
             
             rows = list(reader)
+            if not rows:
+                print("\nNo passenger records found.")
             
             print("\n[1] Dataset Information")
             print(f"Dataset: {file_path.name}")
@@ -96,6 +98,28 @@ def inspect_csv(file_path):
 
             for index, row in enumerate(rows[:5], start=1):
                 print(f"Record {index}: {row}")
+                
+            malformed_records = []
+
+            for index, row in enumerate(rows, start=1):
+
+                has_extra_fields = None in row
+
+                has_missing_fields = any(
+                    row[column] is None
+                    for column in headers
+                )
+
+                if has_extra_fields or has_missing_fields:
+                    malformed_records.append(index)
+
+            if malformed_records:
+                print(
+                    "\nWarning: Unexpected row structures found in records:",
+                    malformed_records
+                )
+            else:
+                print("\nAll records have a consistent structure.")                
 
     except OSError as error:
         print(f"File error: {error}")
