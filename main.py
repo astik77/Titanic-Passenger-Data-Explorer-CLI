@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent              
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 DATA_PATH = PROJECT_ROOT / "data" / "raw" / "train.csv"
 
@@ -23,6 +23,57 @@ __file__    ----> refers to the current Python file (main.py).
 
 /           ----> joins path components using pathlib
 """
+
+# define the following missing-value policy
+MISSING_MARKERS = {"", "na", "n/a", "null"}
+def is_missing(value):
+    if value is None:
+        return True
+
+    return str(value).strip().lower() in MISSING_MARKERS
+            
+# Calculate missing values for each column
+def analyze_missing_values(rows, headers):
+    missing_counts = {}
+    for column in headers:
+        count = 0
+        for row in rows:
+            if is_missing(row.get(column)):
+                count += 1
+                    
+        missing_counts[column] = count
+    return missing_counts
+
+def calculate_missing_percentage(missing_count, total_records):
+
+    if total_records == 0:
+        return 0
+
+    percentage = (missing_count / total_records) * 100
+
+    return round(percentage, 2)
+
+def display_missing_report(rows, headers):
+
+    missing_counts = analyze_missing_values(rows, headers)
+
+    total_records = len(rows)
+
+    print("\n========================================")
+    print("          MISSING VALUE REPORT")
+    print("========================================")
+
+    print(f"{'Column':<20} {'Missing':<12} {'Percentage'}")
+    print("-" * 50)
+
+    for column, count in missing_counts.items():
+
+        percentage = calculate_missing_percentage(
+            count,
+            total_records
+        )
+
+        print(f"{column:<20} {count:<12} {percentage}%")
 
 def inspect_csv(file_path):
 
@@ -119,8 +170,10 @@ def inspect_csv(file_path):
                     malformed_records
                 )
             else:
-                print("\nAll records have a consistent structure.")                
+                print("\nAll records have a consistent structure.")
 
+            display_missing_report(rows, headers)
+            
     except OSError as error:
         print(f"File error: {error}")
 
