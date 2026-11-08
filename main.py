@@ -24,6 +24,26 @@ __file__    ----> refers to the current Python file (main.py).
 /           ----> joins path components using pathlib
 """
 
+# define the following missing-value policy
+MISSING_MARKERS = {"", "na", "n/a", "null"}
+def is_missing(value):
+    if value is None:
+        return True
+
+    return str(value).strip().lower() in MISSING_MARKERS
+            
+# Calculate missing values for each column
+def analyze_missing_values(rows, headers):
+    missing_counts = {}
+    for column in headers:
+        count = 0
+        for row in rows:
+            if is_missing(row.get(column)):
+                count += 1
+                    
+        missing_counts[column] = count
+    return missing_counts
+
 def inspect_csv(file_path):
 
     file_path = Path(file_path)
@@ -121,27 +141,6 @@ def inspect_csv(file_path):
             else:
                 print("\nAll records have a consistent structure.")
             
-            # define the following missing-value policy
-            MISSING_MARKERS = {"", "na", "n/a", "null"}
-            def is_missing(value):
-                if value is None:
-                    return True
-
-                return str(value).strip().lower() in MISSING_MARKERS
-            
-            # Calculate missing values for each column
-            def analyze_missing_values(rows, headers):
-                missing_counts = {}
-                for column in headers:
-                    count = 0
-                    for row in rows:
-                        if is_missing(row.get(column)):
-                            count += 1
-                    
-                    missing_counts[column] = count
-                return missing_counts
-
-
     except OSError as error:
         print(f"File error: {error}")
 
