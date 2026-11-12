@@ -8,7 +8,20 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_PATH = PROJECT_ROOT / "data" / "raw" / "train.csv"
 
 # Minimum required columns in the Titanic dataset
-REQUIRED_COLUMNS = {"PassengerId", "Survived", "Pclass"}
+REQUIRED_COLUMNS = {
+    "PassengerId",
+    "Survived",
+    "Pclass",
+    "Name",
+    "Sex",
+    "Age",
+    "SibSp",
+    "Parch",
+    "Ticket",
+    "Fare",
+    "Cabin",
+    "Embarked"
+}
 
 REQUIRED_VALUE_FIELDS = [
     "PassengerId",
@@ -168,6 +181,15 @@ def validate_numeric_column(rows, column, data_type, min_value=None):
                 "reason": f"Cannot convert to {data_type.__name__}"
             })
             continue
+        
+        if not isfinite(converted_value):
+                invalid_records.append({
+                    "record": record_number,
+                    "value": value,
+                    "reason": "Numeric value must be finite"
+                })
+                continue
+        
         # Check the minimum allowed value
         if min_value is not None and converted_value < min_value:
             invalid_records.append({
@@ -175,13 +197,6 @@ def validate_numeric_column(rows, column, data_type, min_value=None):
                 "value": value,
                 "reason": f"Value must be >= {min_value}"
             })
-            if not isfinite(converted_value):
-                invalid_records.append({
-                    "record": record_number,
-                    "value": value,
-                    "reason": "Numeric value must be finite"
-                })
-                continue
 
     return invalid_records
 
@@ -464,24 +479,6 @@ def inspect_csv(file_path):
                     print(error)
             else:
                 print("All required fields contain valid values.")
-            
-            test_rows = [
-                {"Fare": "25.5"},
-                {"Fare": "-10"},
-                {"Fare": "nan"},
-                {"Fare": "inf"},
-                {"Fare": ""},
-                {"Fare": "invalid"}
-            ]
-
-            print(
-                validate_numeric_column(
-                    test_rows,
-                    "Fare",
-                    float,
-                    min_value=0
-                )
-            )
             
     except OSError as error:
         print(f"File error: {error}")
