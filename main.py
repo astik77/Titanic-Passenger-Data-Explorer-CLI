@@ -1,6 +1,7 @@
 import csv
 from pathlib import Path
 from collections import Counter
+from math import isfinite
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -8,6 +9,15 @@ DATA_PATH = PROJECT_ROOT / "data" / "raw" / "train.csv"
 
 # Minimum required columns in the Titanic dataset
 REQUIRED_COLUMNS = {"PassengerId", "Survived", "Pclass"}
+
+REQUIRED_VALUE_FIELDS = [
+    "PassengerId",
+    "Survived",
+    "Pclass",
+    "Name",
+    "Sex",
+    "Ticket"
+]
 
 """
 __file__    ----> refers to the current Python file (main.py).
@@ -119,7 +129,6 @@ def find_duplicate_rows(rows, headers):
 
     return duplicates
 
-
 def find_duplicate_passenger_ids(rows):
     passenger_ids = []
 
@@ -166,6 +175,13 @@ def validate_numeric_column(rows, column, data_type, min_value=None):
                 "value": value,
                 "reason": f"Value must be >= {min_value}"
             })
+            if not isfinite(converted_value):
+                invalid_records.append({
+                    "record": record_number,
+                    "value": value,
+                    "reason": "Numeric value must be finite"
+                })
+                continue
 
     return invalid_records
 
@@ -198,6 +214,28 @@ def validate_categorical_column(rows, column, allowed_values):
                 "record": record_number,
                 "value": value,
                 "reason": f"Value must be one of {sorted(allowed_values)}"
+            })
+
+    return invalid_records
+
+def validate_required_fields(rows, required_fields):
+    """
+    Identify records with missing values in mandatory fields.
+    """
+
+    invalid_records = []
+
+    for record_number, row in enumerate(rows, start=1):
+        missing_fields = []
+
+        for column in required_fields:
+            if is_missing(row.get(column)):
+                missing_fields.append(column)
+
+        if missing_fields:
+            invalid_records.append({
+                "record": record_number,
+                "missing_fields": missing_fields
             })
 
     return invalid_records
@@ -410,6 +448,40 @@ def inspect_csv(file_path):
                         print(record)
                 else:
                     print("No invalid values found.")           
+            
+            # Required Field Validation
+            print("\n========================================")
+            print("        REQUIRED FIELD VALIDATION")
+            print("========================================")
+
+            required_field_errors = validate_required_fields(
+                rows,
+                REQUIRED_VALUE_FIELDS
+            )
+
+            if required_field_errors:
+                for error in required_field_errors:
+                    print(error)
+            else:
+                print("All required fields contain valid values.")
+            
+            test_rows = [
+                {"Fare": "25.5"},
+                {"Fare": "-10"},
+                {"Fare": "nan"},
+                {"Fare": "inf"},
+                {"Fare": ""},
+                {"Fare": "invalid"}
+            ]
+
+            print(
+                validate_numeric_column(
+                    test_rows,
+                    "Fare",
+                    float,
+                    min_value=0
+                )
+            )
             
     except OSError as error:
         print(f"File error: {error}")
