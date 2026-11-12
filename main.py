@@ -169,6 +169,39 @@ def validate_numeric_column(rows, column, data_type, min_value=None):
 
     return invalid_records
 
+def validate_categorical_column(rows, column, allowed_values):
+    """
+    Validate categorical values against a predefined set.
+
+    - Ignore missing values.
+    - Check whether each value belongs to the allowed categories.
+    - Return invalid records with their record numbers and values.
+    """
+
+    invalid_records = []
+
+    allowed_values = set(allowed_values)
+
+    for record_number, row in enumerate(rows, start=1):
+        value = row.get(column)
+
+        # Skip missing values
+        if is_missing(value):
+            continue
+
+        # Normalize whitespace before comparison
+        normalized_value = str(value).strip()
+
+        # Check whether the value belongs to allowed categories
+        if normalized_value not in allowed_values:
+            invalid_records.append({
+                "record": record_number,
+                "value": value,
+                "reason": f"Value must be one of {sorted(allowed_values)}"
+            })
+
+    return invalid_records
+
 def inspect_csv(file_path):
 
     file_path = Path(file_path)
@@ -349,6 +382,34 @@ def inspect_csv(file_path):
                         print(record)
                 else:
                     print("No invalid values found.")
+            
+            # Categorical Value Validation
+            print("\n========================================")
+            print("       CATEGORICAL VALUE VALIDATION")
+            print("========================================")
+
+            categorical_rules = [
+                ("Survived", {"0", "1"}),
+                ("Pclass", {"1", "2", "3"}),
+                ("Sex", {"male", "female"}),
+                ("Embarked", {"S", "C", "Q"})
+            ]
+
+            for column, allowed_values in categorical_rules:
+
+                invalid_records = validate_categorical_column(
+                    rows,
+                    column,
+                    allowed_values
+                )
+
+                print(f"\n{column}:")
+
+                if invalid_records:
+                    for record in invalid_records:
+                        print(record)
+                else:
+                    print("No invalid values found.")           
             
     except OSError as error:
         print(f"File error: {error}")
