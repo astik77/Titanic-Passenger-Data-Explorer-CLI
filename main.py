@@ -47,6 +47,133 @@ __file__    ----> refers to the current Python file (main.py).
 
 /           ----> joins path components using pathlib
 """
+def build_data_quality_summary(rows, headers, malformed_records):
+
+    # Missing value analysis
+    missing_counts = analyze_missing_values(rows, headers)
+
+    total_missing = sum(missing_counts.values())
+    total_cells = len(rows) * len(headers)
+
+    missing_percentage = calculate_missing_percentage(
+        total_missing,
+        total_cells
+    )
+
+    # Duplicate analysis
+    duplicate_rows = find_duplicate_rows(rows, headers)
+    duplicate_ids = find_duplicate_passenger_ids(rows)
+
+    # Count extra occurrences beyond the first
+    total_duplicate_rows = sum(
+        count - 1 for count in duplicate_rows.values()
+    )
+
+    total_duplicate_ids = sum(
+        count - 1 for count in duplicate_ids.values()
+    )
+
+    # Numeric validation
+    numeric_rules = [
+        ("PassengerId", int, 1),
+        ("Age", float, 0),
+        ("SibSp", int, 0),
+        ("Parch", int, 0),
+        ("Fare", float, 0)
+    ]
+
+    numeric_invalid_count = 0
+
+    for column, data_type, min_value in numeric_rules:
+        errors = validate_numeric_column(
+            rows, column, data_type, min_value
+        )
+        numeric_invalid_count += len(errors)
+
+    # Categorical validation
+    categorical_rules = [
+        ("Survived", {"0", "1"}),
+        ("Pclass", {"1", "2", "3"}),
+        ("Sex", {"male", "female"}),
+        ("Embarked", {"S", "C", "Q"})
+    ]
+
+    categorical_invalid_count = 0
+
+    for column, allowed_values in categorical_rules:
+        errors = validate_categorical_column(
+            rows, column, allowed_values
+        )
+        categorical_invalid_count += len(errors)
+
+    # Required field validation
+    required_errors = validate_required_fields(
+        rows, REQUIRED_VALUE_FIELDS
+    )
+
+    required_field_violations = sum(
+        len(error["missing_fields"])
+        for error in required_errors
+    )
+
+    # Consolidated summary
+    summary = {
+        "total_records": len(rows),
+        "total_columns": len(headers),
+        "malformed_records": len(malformed_records),
+        "missing_values": total_missing,
+        "missing_percentage": missing_percentage,
+        "duplicate_rows": total_duplicate_rows,
+        "duplicate_passenger_ids": total_duplicate_ids,
+        "invalid_numeric_values": numeric_invalid_count,
+        "invalid_categorical_values": categorical_invalid_count,
+        "required_field_violations": required_field_violations
+    }
+
+    return summary
+
+def display_data_quality_summary(summary):
+
+    print("\n========================================")
+    print("       FINAL DATA QUALITY SUMMARY")
+    print("========================================")
+
+    print(f"Total Records: {summary['total_records']}")
+    print(f"Total Columns: {summary['total_columns']}")
+
+    print("\nStructural Validation")
+    print(f"Malformed Records: {summary['malformed_records']}")
+
+    print("\nMissing Value Analysis")
+    print(f"Missing Values: {summary['missing_values']}")
+    print(f"Missing Percentage: {summary['missing_percentage']}%")
+
+    print("\nDuplicate Detection")
+    print(f"Exact Duplicate Rows: {summary['duplicate_rows']}")
+    print(f"Duplicate Passenger IDs: {summary['duplicate_passenger_ids']}")
+
+    print("\nValue Validation")
+    print(f"Invalid Numeric Values: {summary['invalid_numeric_values']}")
+    print(f"Invalid Categorical Values: {summary['invalid_categorical_values']}")
+    print(f"Required Field Violations: {summary['required_field_violations']}")
+
+    print("\n========================================")
+
+    has_issues = any([
+        summary["malformed_records"],
+        summary["duplicate_rows"],
+        summary["duplicate_passenger_ids"],
+        summary["invalid_numeric_values"],
+        summary["invalid_categorical_values"],
+        summary["required_field_violations"]
+    ])
+
+    if has_issues:
+        print("Overall Status: ISSUES FOUND")
+    else:
+        print("Overall Status: VALIDATION PASSED")
+
+    print("========================================")
 
 # define the following missing-value policy
 MISSING_MARKERS = {"", "na", "n/a", "null"}
@@ -479,6 +606,16 @@ def inspect_csv(file_path):
                     print(error)
             else:
                 print("All required fields contain valid values.")
+            
+            # Final Consolidated Data Quality Report
+
+            summary = build_data_quality_summary(
+                rows,
+                headers,
+                malformed_records
+            )
+
+            display_data_quality_summary(summary)
             
     except OSError as error:
         print(f"File error: {error}")
