@@ -1,5 +1,6 @@
 import csv
 from pathlib import Path
+from collections import Counter
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -74,6 +75,19 @@ def display_missing_report(rows, headers):
         )
 
         print(f"{column:<20} {count:<12} {percentage}%")
+
+def analyze_categorical_column(rows, column):
+    values = []
+
+    for row in rows:
+        value = row.get(column)
+
+        if not is_missing(value):
+            values.append(value)
+
+    frequency = Counter(values)
+
+    return frequency
 
 def inspect_csv(file_path):
 
@@ -173,6 +187,21 @@ def inspect_csv(file_path):
                 print("\nAll records have a consistent structure.")
 
             display_missing_report(rows, headers)
+            
+            # Categorical Frequency Analysis
+            print("\n========================================")
+            print("       CATEGORICAL FREQUENCY REPORT")
+            print("========================================")
+
+            categorical_columns = ["Sex", "Pclass", "Embarked"]
+
+            for column in categorical_columns:
+                frequency = analyze_categorical_column(rows, column)
+
+                print(f"\n{column}:")
+
+                for value, count in frequency.items():
+                    print(f"  {value}: {count}")
             
     except OSError as error:
         print(f"File error: {error}")
