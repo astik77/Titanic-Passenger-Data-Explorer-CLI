@@ -102,6 +102,43 @@ def analyze_unique_values(rows, column):
     
     return sorted_values
 
+def find_duplicate_rows(rows, headers):
+    row_signatures = []
+
+    for row in rows:
+        row_signature = tuple(row.get(column) for column in headers)
+        row_signatures.append(row_signature)
+
+    row_counts = Counter(row_signatures)
+
+    duplicates = {
+        row: count
+        for row, count in row_counts.items()
+        if count > 1
+    }
+
+    return duplicates
+
+
+def find_duplicate_passenger_ids(rows):
+    passenger_ids = []
+
+    for row in rows:
+        passenger_id = row.get("PassengerId")
+
+        if not is_missing(passenger_id):
+            passenger_ids.append(passenger_id)
+
+    id_counts = Counter(passenger_ids)
+
+    duplicates = {
+        passenger_id: count
+        for passenger_id, count in id_counts.items()
+        if count > 1
+    }
+
+    return duplicates
+
 def inspect_csv(file_path):
 
     file_path = Path(file_path)
@@ -226,6 +263,32 @@ def inspect_csv(file_path):
             for column in categorical_columns:
                 print(f"{column}- ")
                 print(analyze_unique_values(rows, column))
+                
+            # Duplicate Detection
+            print("\n========================================")
+            print("          DUPLICATE DETECTION")
+            print("========================================")
+
+            duplicate_rows = find_duplicate_rows(rows, headers)
+
+            print("\nExact Duplicate Rows:")
+
+            if duplicate_rows:
+                for row, count in duplicate_rows.items():
+                    print(f"Record: {row}")
+                    print(f"Occurrences: {count}")
+            else:
+                print("No exact duplicate rows found.")
+
+            duplicate_ids = find_duplicate_passenger_ids(rows)
+
+            print("\nDuplicate Passenger IDs:")
+
+            if duplicate_ids:
+                for passenger_id, count in duplicate_ids.items():
+                    print(f"Passenger ID: {passenger_id} | Occurrences: {count}")
+            else:
+                print("No duplicate Passenger IDs found.")
             
     except OSError as error:
         print(f"File error: {error}")
