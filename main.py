@@ -139,6 +139,36 @@ def find_duplicate_passenger_ids(rows):
 
     return duplicates
 
+def validate_numeric_column(rows, column, data_type, min_value=None):
+    invalid_records = []
+
+    for record_number, row in enumerate(rows, start=1):
+        value = row.get(column)
+        
+        # Skip missing values
+        if is_missing(value):
+            continue
+        # Check whether the value can be converted
+        try:
+            converted_value = data_type(value)
+
+        except (ValueError, TypeError):
+            invalid_records.append({
+                "record": record_number,
+                "value": value,
+                "reason": f"Cannot convert to {data_type.__name__}"
+            })
+            continue
+        # Check the minimum allowed value
+        if min_value is not None and converted_value < min_value:
+            invalid_records.append({
+                "record": record_number,
+                "value": value,
+                "reason": f"Value must be >= {min_value}"
+            })
+
+    return invalid_records
+
 def inspect_csv(file_path):
 
     file_path = Path(file_path)
@@ -289,6 +319,36 @@ def inspect_csv(file_path):
                     print(f"Passenger ID: {passenger_id} | Occurrences: {count}")
             else:
                 print("No duplicate Passenger IDs found.")
+            
+            # Numeric Value Validation
+            print("\n========================================")
+            print("         NUMERIC VALUE VALIDATION")
+            print("========================================")
+
+            numeric_rules = [
+                ("PassengerId", int, 1),
+                ("Age", float, 0),
+                ("SibSp", int, 0),
+                ("Parch", int, 0),
+                ("Fare", float, 0)
+            ]
+
+            for column, data_type, min_value in numeric_rules:
+
+                invalid_records = validate_numeric_column(
+                    rows,
+                    column,
+                    data_type,
+                    min_value
+                )
+
+                print(f"\n{column}:")
+
+                if invalid_records:
+                    for record in invalid_records:
+                        print(record)
+                else:
+                    print("No invalid values found.")
             
     except OSError as error:
         print(f"File error: {error}")
