@@ -86,8 +86,21 @@ def analyze_categorical_column(rows, column):
             values.append(value)
 
     frequency = Counter(values)
-
+    
     return frequency
+
+def analyze_unique_values(rows, column):
+    values = []
+
+    for row in rows:
+        value = row.get(column)
+        if not is_missing(value):
+            values.append(value)
+    
+    unique_values = set(values)
+    sorted_values = sorted(unique_values)
+    
+    return sorted_values
 
 def inspect_csv(file_path):
 
@@ -202,6 +215,17 @@ def inspect_csv(file_path):
 
                 for value, count in frequency.items():
                     print(f"  {value}: {count}")
+                    
+            # Unique Value Analysis
+            print("\n========================================")
+            print("       UNIQUE VALUE REPORT")
+            print("========================================")
+
+            categorical_columns = ["Sex", "Pclass", "Embarked", "Survived"]
+            
+            for column in categorical_columns:
+                print(f"{column}- ")
+                print(analyze_unique_values(rows, column))
             
     except OSError as error:
         print(f"File error: {error}")
